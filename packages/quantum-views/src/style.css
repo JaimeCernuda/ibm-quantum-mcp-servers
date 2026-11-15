@@ -20,6 +20,12 @@
   --q-block-1: light-dark(#d0e2ff, #1c3a6e);
   --q-block-2: light-dark(#fde8c4, #5a3d12);
   --q-block-3: light-dark(#d4f0dc, #1d4a2c);
+  --q-syntax-keyword: light-dark(#8250df, #d2a8ff);
+  --q-syntax-type: light-dark(#0550ae, #79c0ff);
+  --q-syntax-gate: light-dark(#6639ba, #f0a8ff);
+  --q-syntax-constant: light-dark(#953800, #ffa657);
+  --q-syntax-string: light-dark(#0a3069, #a5d6ff);
+  --q-syntax-comment: light-dark(#6e7781, #8b949e);
 }
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] { color-scheme: dark; }
@@ -61,6 +67,12 @@ label.inline { display: inline-flex; gap: 6px; align-items: center; color: var(-
 .panel h2 { font-size: 12px; margin: 0 0 6px; font-weight: 600; }
 .panel pre { margin: 0; font: 12px/1.45 var(--font-mono); white-space: pre-wrap; word-break: break-word;
   max-height: 260px; overflow: auto; }
+.qasm .qasm-keyword { color: var(--q-syntax-keyword); }
+.qasm .qasm-type { color: var(--q-syntax-type); }
+.qasm .qasm-gate { color: var(--q-syntax-gate); }
+.qasm .qasm-constant, .qasm .qasm-number, .qasm .qasm-qubit { color: var(--q-syntax-constant); }
+.qasm .qasm-string { color: var(--q-syntax-string); }
+.qasm .qasm-comment { color: var(--q-syntax-comment); font-style: italic; }
 .panel table { border-collapse: collapse; font-size: 12px; width: 100%; }
 .panel th, .panel td { text-align: left; padding: 2px 8px 2px 0; border-bottom: 1px solid var(--color-border-primary); }
 .selection { font-size: 12px; color: var(--color-text-secondary); min-height: 18px; }

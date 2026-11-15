@@ -2,6 +2,7 @@
 import { blockLegend, describeGate, drawCircuit, type CircuitData, type Gate } from "../circuit-draw";
 import { busy, button, el } from "../dom";
 import { callServer, onThemeChange, report, setAppTools, textResult, type Json } from "../host";
+import { highlightQasm } from "../qasm-highlight";
 import { pictureTools, setFacts, shell, type Described } from "./common";
 
 interface CircuitViewData extends CircuitData {
@@ -49,7 +50,7 @@ export async function circuitView(request: Json): Promise<void> {
   const qasmButton = button("QASM 3", () =>
     void busy(qasmButton, async () => {
       const out = await callServer("export_circuit_to_qasm", { circuit_qpy: data.qpy, qasm_version: "3.0" });
-      showPanel("OpenQASM 3", el("pre", { text: String(out.qasm ?? out.circuit ?? data.qasm3) }));
+      showPanel("OpenQASM 3", el("pre", { class: "qasm" }, ...highlightQasm(String(out.qasm ?? out.circuit ?? data.qasm3))));
     }, (m) => view.message(m, true)),
   );
   const analyzeButton = button("Analyze", () =>
