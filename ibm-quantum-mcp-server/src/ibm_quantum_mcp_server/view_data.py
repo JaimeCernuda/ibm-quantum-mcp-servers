@@ -19,6 +19,7 @@ renders a picture.
 from __future__ import annotations
 
 import math
+import re
 from typing import TYPE_CHECKING, Any
 
 from qiskit_mcp_server.circuit_serialization import dump_qpy_circuit
@@ -33,11 +34,15 @@ if TYPE_CHECKING:
 _DIRECTIVES = {"barrier"}
 
 
+_LONG_NUMBER = re.compile(r"\d+\.\d{5,}")
+
+
 def _param_text(value: Any) -> str | float:
+    """A gate parameter: a number, or an expression with its numbers to four figures."""
     try:
         number = float(value)
     except (TypeError, ValueError):
-        return str(value)
+        return _LONG_NUMBER.sub(lambda m: f"{float(m.group()):.4g}", str(value))
     return round(number, 6) if math.isfinite(number) else str(value)
 
 
