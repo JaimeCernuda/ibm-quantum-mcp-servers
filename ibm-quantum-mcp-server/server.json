@@ -1,0 +1,38 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.JaimeCernuda/ibm-quantum-mcp-server",
+  "title": "IBM Quantum MCP Server",
+  "description": "Qiskit circuits, IBM Quantum Runtime and docs in one server, with local simulation and views",
+  "version": "0.1.0",
+  "websiteUrl": "https://github.com/JaimeCernuda/ibm-quantum-mcp-servers/tree/main/ibm-quantum-mcp-server",
+  "repository": {
+    "url": "https://github.com/JaimeCernuda/ibm-quantum-mcp-servers",
+    "source": "github",
+    "subfolder": "ibm-quantum-mcp-server"
+  },
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "ibm-quantum-mcp-server",
+      "version": "0.1.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "QISKIT_IBM_TOKEN",
+          "description": "IBM Quantum API key, only for real hardware; simulation needs none",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "QISKIT_IBM_RUNTIME_MCP_INSTANCE",
+          "description": "The instance CRN to run on",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

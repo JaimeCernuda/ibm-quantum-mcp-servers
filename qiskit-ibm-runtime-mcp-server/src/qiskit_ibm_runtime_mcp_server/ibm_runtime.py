@@ -54,6 +54,39 @@ def get_instance_from_env() -> str | None:
     return None
 
 
+#: When set (to 1, true or yes), the server never reads or writes saved accounts
+#: (~/.qiskit/qiskit-ibm.json): the key comes only from QISKIT_IBM_TOKEN or the call.
+#: A host that keeps the key in its own credential store sets it.
+NO_SAVED_ACCOUNT_ENV = "QISKIT_MCP_NO_SAVED_ACCOUNT"
+
+
+class NoAccountKeyError(ValueError):
+    """No IBM Quantum API key while saved accounts are switched off."""
+
+
+def saved_accounts_disabled() -> bool:
+    """Whether saved accounts are switched off (QISKIT_MCP_NO_SAVED_ACCOUNT)."""
+    value = os.getenv(NO_SAVED_ACCOUNT_ENV, "")
+    return value.strip().lower() in {"1", "true", "yes"}
+
+
+def _initialize_without_saved_account(
+    token: str | None, channel: str, instance: str | None
+) -> QiskitRuntimeService:
+    """Start the service from the given or environment key, never from or to disk."""
+    global service
+    key = (token or "").strip() or get_token_from_env()
+    if not key:
+        raise NoAccountKeyError(
+            "No IBM Quantum API key is set, and saved accounts are switched off "
+            f"({NO_SAVED_ACCOUNT_ENV}). Set QISKIT_IBM_TOKEN."
+        )
+    service = QiskitRuntimeService(
+        channel=channel, token=key, instance=instance or get_instance_from_env()
+    )
+    return service
+
+
 def least_busy(backends: list[Any]) -> Any | None:
     """Find the least busy backend from a list of backends."""
     if not backends:
@@ -202,6 +235,9 @@ def initialize_service(
     # Check for instance in environment if not explicitly provided
     if instance is None:
         instance = get_instance_from_env()
+
+    if saved_accounts_disabled():
+        return _initialize_without_saved_account(token, channel, instance)
 
     try:
         # First, try to initialize from saved credentials (unless a new token is explicitly provided)
@@ -2400,6 +2436,11 @@ async def delete_saved_account(account_name: str) -> dict[str, Any]:
         - On error: {"status": "error", "deleted": False, "message": error_message}
 
     """
+    if saved_accounts_disabled():
+        return {
+            "status": "error",
+            "message": f"Saved accounts are switched off ({NO_SAVED_ACCOUNT_ENV}).",
+        }
     try:
         is_deleted = QiskitRuntimeService.delete_account(name=account_name)
 
@@ -2437,6 +2478,11 @@ async def list_saved_accounts() -> dict[str, Any]:
         - On success with no accounts: {"status": "success", "accounts": {}, "message": "No accounts found"}
         - On error: {"status": "error", "message": error_message}
     """
+    if saved_accounts_disabled():
+        return {
+            "status": "error",
+            "message": f"Saved accounts are switched off ({NO_SAVED_ACCOUNT_ENV}).",
+        }
     try:
         accounts_list = QiskitRuntimeService.saved_accounts()
         if len(accounts_list) > 0:
