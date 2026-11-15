@@ -50,10 +50,16 @@ export function drawDevice(device: Device, options: MapOptions = {}): DrawnMap {
   const xs = shown.map((q) => pos[q][0]);
   const ys = shown.map((q) => pos[q][1]);
   const pad = options.zoomTo?.length ? SCALE * 1.6 : SCALE * 0.8;
-  const minX = Math.min(...xs) - pad;
-  const minY = Math.min(...ys) - pad;
-  const w = Math.max(...xs) - Math.min(...xs) + 2 * pad;
-  const h = Math.max(...ys) - Math.min(...ys) + 2 * pad;
+  // A zoom never shows less than a few rows of the device, so a small circuit keeps its
+  // neighbourhood in sight and its qubits are not drawn huge.
+  const minW = options.zoomTo?.length ? SCALE * 9 : 0;
+  const minH = options.zoomTo?.length ? SCALE * 5 : 0;
+  let w = Math.max(Math.max(...xs) - Math.min(...xs) + 2 * pad, minW);
+  let h = Math.max(Math.max(...ys) - Math.min(...ys) + 2 * pad, minH);
+  w = Math.max(w, h * 1.4);
+  h = Math.max(h, w / 3);
+  const minX = (Math.max(...xs) + Math.min(...xs)) / 2 - w / 2;
+  const minY = (Math.max(...ys) + Math.min(...ys)) / 2 - h / 2;
   const root = svg("svg", {
     viewBox: `${minX} ${minY} ${w} ${h}`, width: "100%", role: "img",
     "aria-label": `${device.name}: ${device.num_qubits} qubits, ${device.edges.length} couplings`,

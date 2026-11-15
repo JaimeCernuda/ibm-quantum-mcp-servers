@@ -93,11 +93,17 @@ export async function backendView(request: Json): Promise<void> {
 
   function draw() {
     const meta = METRICS[metric];
-    const vs = values().filter((v): v is number => v !== null && Number.isFinite(v)).sort((a, b) => a - b);
+    // Error rates of 0.5 and above mark a qubit or coupling out of service (fake devices use
+    // 1); they get their own colour so the scale covers the ones that work.
+    const outOfService = (v: number | null | undefined) => meta.lowIsGood && v !== null && v !== undefined && v >= 0.5;
+    const vs = values()
+      .filter((v): v is number => v !== null && Number.isFinite(v) && !outOfService(v))
+      .sort((a, b) => a - b);
+    const broken = values().filter((v) => outOfService(v)).length;
     // Clip to the 2nd–98th percentile so one bad qubit does not wash out the rest.
     const lo = vs[Math.floor(vs.length * 0.02)] ?? 0;
     const hi = vs[Math.min(vs.length - 1, Math.floor(vs.length * 0.98))] ?? 1;
-    const color = (v: number | null | undefined) => ramp(v ?? null, lo, hi, meta.lowIsGood);
+    const color = (v: number | null | undefined) => (outOfService(v) ? "#6f6f6f" : ramp(v ?? null, lo, hi, meta.lowIsGood));
     const strong = new Set<number>([...chain, ...picked]);
     const strongEdges = new Set<string>();
     for (let i = 1; i < chain.length; i++) strongEdges.add(edgeKey(chain[i - 1], chain[i]));
@@ -119,6 +125,10 @@ export async function backendView(request: Json): Promise<void> {
       Object.assign(el("span", { class: "ramp", role: "img", "aria-label": `${meta.lowIsGood ? "low is better" : "high is better"}, blue is better` }), {}),
       el("span", { text: `${fmt(hi, meta.unit ? 1 : 4)}${unit}` }),
       el("span", { text: `(blue is better; ${meta.lowIsGood ? "lower" : "higher"} is better)` }),
+      ...(broken
+        ? [el("span", { class: "key" }, el("span", { class: "swatch", style: "background:#6f6f6f" }),
+            `${broken} out of service (error 0.5 or more)`)]
+        : []),
     );
     (legend.querySelector(".ramp") as HTMLElement).style.background = rampCss(meta.lowIsGood);
     report({ backend: data.name, metric, legend: { metric, min: lo, max: hi, unit: meta.unit } },
