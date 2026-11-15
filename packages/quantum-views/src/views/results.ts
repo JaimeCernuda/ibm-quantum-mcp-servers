@@ -252,7 +252,7 @@ function estimatorSpec(cmp: Comparison, expected: number[] | null): Json {
     {
       mark: { type: "point", filled: true, size: 60, tooltip: true },
       encoding: {
-        x: { field: "set", type: "ordinal", title: "Parameter set" },
+        x: { field: "set", type: "ordinal", title: "Parameter set", axis: { labelOverlap: "parity", labelAngle: 0 } },
         xOffset: { field: "job" },
         y: { field: "value", type: "quantitative", title: `⟨${cmp.observables?.[0] ?? "O"}⟩`, scale: { domain: [-1.05, 1.05] } },
         color: { field: "job", type: "nominal", title: "Job", legend: { orient: "bottom", labelLimit: 280 } },

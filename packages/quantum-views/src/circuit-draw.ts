@@ -268,8 +268,10 @@ function drawGate(
       svg("path", { d: `M ${cx - 8} ${yq + 5} A 8 8 0 0 1 ${cx + 8} ${yq + 5}`, fill: "none", stroke: p.text }),
       svg("line", { x1: cx, x2: cx + 6, y1: yq + 5, y2: yq - 6, stroke: p.text }),
     );
+    // The bit's number sits with the arrow, not the gate, so the gate's box stays its own
+    // (describe_region reads what a mark covers from the boxes).
     if (gate.clbits.length) {
-      g.append(svg("text", { x: cx + 6, y: classicalY + 14, fill: p.muted, "font-size": 10, text: String(gate.clbits[0]) }));
+      behind.append(svg("text", { x: cx + 6, y: classicalY + 14, fill: p.muted, "font-size": 10, text: String(gate.clbits[0]) }));
     }
     return g;
   }
