@@ -42,6 +42,14 @@ def run_sampler(
         from qiskit.primitives import StatevectorSampler
 
         result = StatevectorSampler(seed=seed).run([pub], shots=shots).result()
+        out = sampler_result(result[0], sets.as_lists())
+        listed = sets.as_lists()
+        rows: list[list[float] | None] = list(listed) if listed else [None]
+        for entry, row in zip(out["sets"], rows, strict=False):
+            exact = exact_distribution(prepared.logical, row)
+            if exact is not None:
+                entry["exact_probabilities"] = exact
+        return out
     else:
         from qiskit_ibm_runtime import SamplerV2
 
@@ -50,6 +58,34 @@ def run_sampler(
             sampler.options.simulator.seed_simulator = seed
         result = sampler.run([pub], shots=shots).result()
     return sampler_result(result[0], sets.as_lists())
+
+
+def exact_distribution(circuit: Any, values: list[float] | None) -> dict[str, float] | None:
+    """The exact probability of each bitstring a measured circuit gives, in the counts'
+    bit order; None when its measurements are not final, cover not every bit, or use more
+    than one register."""
+    from qiskit.quantum_info import Statevector
+
+    if len(circuit.cregs) != 1:
+        return None
+    pairs = [
+        (circuit.find_bit(i.clbits[0]).index, circuit.find_bit(i.qubits[0]).index)
+        for i in circuit.data
+        if i.operation.name == "measure"
+    ]
+    if sorted(c for c, _ in pairs) != list(range(circuit.num_clbits)):
+        return None
+    try:
+        bare = circuit.remove_final_measurements(inplace=False)
+    except Exception:
+        return None
+    if any(i.operation.name == "measure" for i in bare.data):
+        return None
+    if values is not None:
+        bare = bare.assign_parameters(values)
+    qubits = [q for _, q in sorted(pairs)]
+    probabilities = Statevector(bare).probabilities_dict(qargs=qubits)
+    return {k: float(v) for k, v in sorted(probabilities.items()) if v > 1e-12}
 
 
 def run_estimator(

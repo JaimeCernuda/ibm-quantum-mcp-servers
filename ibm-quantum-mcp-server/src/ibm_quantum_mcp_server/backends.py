@@ -226,11 +226,17 @@ class Prepared:
         return out
 
 
+#: Transpiles are seeded so a run, its layout view and a re-transpile agree.
+TRANSPILE_SEED = 1234
+
+
 def transpile_for(
     circuit: QuantumCircuit, backend: Any, optimization_level: int = 1
 ) -> QuantumCircuit:
-    """Transpile with the preset pass manager a hardware run uses."""
-    pm = generate_preset_pass_manager(backend=backend, optimization_level=optimization_level)
+    """Transpile with the preset pass manager a hardware run uses, seeded."""
+    pm = generate_preset_pass_manager(
+        backend=backend, optimization_level=optimization_level, seed_transpiler=TRANSPILE_SEED
+    )
     return pm.run(circuit)
 
 

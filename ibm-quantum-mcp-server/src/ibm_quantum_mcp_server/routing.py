@@ -20,12 +20,15 @@ from typing import TYPE_CHECKING, Any
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler import generate_preset_pass_manager
 
-from .backends import circuit_counts, dumps_qasm3, layout_of
+from .backends import TRANSPILE_SEED, circuit_counts, dumps_qasm3, layout_of
 
 
 if TYPE_CHECKING:
     from qiskit import QuantumCircuit
 
+
+#: The seed every transpile here uses, the same as a run's (backends.TRANSPILE_SEED).
+DEFAULT_SEED = TRANSPILE_SEED
 
 _ROUTING_PASSES = {"SabreLayout", "SabreSwap", "BasicSwap", "LookaheadSwap", "StochasticSwap"}
 
@@ -34,12 +37,16 @@ def transpile_with_routing(
     circuit: QuantumCircuit,
     backend: Any,
     optimization_level: int = 1,
-    seed_transpiler: int | None = None,
+    seed_transpiler: int | None = DEFAULT_SEED,
+    initial_layout: list[int] | None = None,
 ) -> dict[str, Any]:
     """Transpile as a hardware run does, keeping the routed circuit before its swaps are
     translated into native gates."""
     pm = generate_preset_pass_manager(
-        backend=backend, optimization_level=optimization_level, seed_transpiler=seed_transpiler
+        backend=backend,
+        optimization_level=optimization_level,
+        seed_transpiler=seed_transpiler,
+        initial_layout=initial_layout,
     )
     captured: dict[str, Any] = {}
     moves: list[tuple[Any, list[Any]]] = []
@@ -61,11 +68,17 @@ def transpile_with_routing(
 
     final = pm.run(circuit, callback=callback)
     routed = captured.get("routed")
+    remap: dict[int, int] = {}
+    if routed is not None:
+        for q in range(routed.num_qubits):
+            p = q
+            for post, qubits in moves:
+                p = post[qubits[p]]
+            remap[q] = p
     swaps = swaps_in(routed) if routed is not None else []
-    for post, qubits in moves:
-        for swap in swaps:
-            swap["qubits"] = [post[qubits[q]] for q in swap["qubits"]]
-    return {"circuit": final, "routed": routed, "swaps": swaps}
+    for swap in swaps:
+        swap["qubits"] = [remap[q] for q in swap["qubits"]]
+    return {"circuit": final, "routed": routed, "remap": remap, "swaps": swaps}
 
 
 def swaps_in(routed: QuantumCircuit) -> list[dict[str, Any]]:
@@ -84,7 +97,7 @@ def layout_report(
     circuit: QuantumCircuit,
     backend: Any,
     optimization_level: int = 1,
-    seed_transpiler: int | None = None,
+    seed_transpiler: int | None = DEFAULT_SEED,
 ) -> dict[str, Any]:
     """What a transpile to a device did: counts before and after, the layout and swaps."""
     routed = transpile_with_routing(circuit, backend, optimization_level, seed_transpiler)

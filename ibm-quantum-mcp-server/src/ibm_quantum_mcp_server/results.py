@@ -81,7 +81,7 @@ def _finite(value: float) -> float | None:
     return float(value) if math.isfinite(value) else None
 
 
-def total_variation_distance(a: dict[str, int], b: dict[str, int]) -> float:
+def total_variation_distance(a: dict[str, float], b: dict[str, float]) -> float:
     """Half the L1 distance between two count distributions, from 0 to 1."""
     total_a = sum(a.values()) or 1
     total_b = sum(b.values()) or 1
@@ -160,7 +160,12 @@ def _compare_sampler(jobs: list[dict[str, Any]]) -> dict[str, Any]:
     n_sets = min(job["result"]["num_sets"] for job in jobs)
     sets = []
     for index in range(n_sets):
-        dists = [job["result"]["sets"][index]["counts"] for job in jobs]
+        # An exact job is compared by its exact probabilities, not by its sampled shots.
+        dists = [
+            job["result"]["sets"][index].get("exact_probabilities")
+            or job["result"]["sets"][index]["counts"]
+            for job in jobs
+        ]
         keys = sorted(set().union(*dists))
         rows = []
         for key in keys:

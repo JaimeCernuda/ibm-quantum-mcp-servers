@@ -1,0 +1,24 @@
+{
+  "name": "quantum-views",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "The IBM Quantum MCP server's MCP Apps views: circuit, layout, results and backend, in one self-contained HTML file",
+  "scripts": {
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^2.0.4",
+    "vega": "^6.4.0",
+    "vega-embed": "^7.3.0",
+    "vega-interpreter": "^2.3.2",
+    "vega-lite": "^6.5.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^7.3.8",
+    "vite-plugin-singlefile": "^2.3.4"
+  }
+}

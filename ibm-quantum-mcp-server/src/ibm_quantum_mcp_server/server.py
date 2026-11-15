@@ -592,9 +592,18 @@ async def compare_optimization_levels(
 
 _mount_all()
 
+from . import views  # noqa: E402  (registers the views and their tools on mcp)
+
+
+del views
+
 
 def main() -> None:
     """Run the server over stdio."""
+    # The mounted runtime server sets the root logger to INFO; Qiskit's per-pass timing
+    # lines would fill the host's log for every transpile.
+    for name in ("qiskit", "qiskit_aer", "qiskit_ibm_runtime", "httpx"):
+        logging.getLogger(name).setLevel(logging.WARNING)
     mcp.run(transport="stdio")
 
 

@@ -150,6 +150,9 @@ class LocalRunner:
         self._pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="local-job")
         self._futures: dict[str, Future[Any]] = {}
         self._cancelled: set[str] = set()
+        #: Status changes and cancellation happen one at a time, so a cancelled job never
+        #: reads as running or done afterwards.
+        self._transition = threading.Lock()
 
     def submit(self, record: dict[str, Any], work: Callable[[], dict[str, Any]]) -> Future[Any]:
         """Queue a job whose ``work`` returns its result."""
@@ -159,30 +162,35 @@ class LocalRunner:
         job_id = record["job_id"]
 
         def run() -> dict[str, Any] | None:
-            if job_id in self._cancelled:
-                return None
-            self.store.update(job_id, status="RUNNING", started_at=now())
+            with self._transition:
+                if job_id in self._cancelled:
+                    return None
+                self.store.update(job_id, status="RUNNING", started_at=now())
             started = time.monotonic()
             try:
                 result = work()
             except Exception as exc:  # the job's own failure, kept on its record
+                with self._transition:
+                    if job_id in self._cancelled:
+                        return None
+                    self.store.update(
+                        job_id,
+                        status="ERROR",
+                        error={"reason": "run_failed", "message": f"{type(exc).__name__}: {exc}"},
+                        finished_at=now(),
+                        run_seconds=round(time.monotonic() - started, 3),
+                    )
+                return None
+            with self._transition:
+                if job_id in self._cancelled:
+                    return None
                 self.store.update(
                     job_id,
-                    status="ERROR",
-                    error={"reason": "run_failed", "message": f"{type(exc).__name__}: {exc}"},
+                    status="DONE",
+                    result=result,
                     finished_at=now(),
                     run_seconds=round(time.monotonic() - started, 3),
                 )
-                return None
-            if job_id in self._cancelled:
-                return None
-            self.store.update(
-                job_id,
-                status="DONE",
-                result=result,
-                finished_at=now(),
-                run_seconds=round(time.monotonic() - started, 3),
-            )
             return result
 
         future = self._pool.submit(run)
@@ -192,14 +200,15 @@ class LocalRunner:
 
     def cancel(self, job_id: str) -> bool:
         """Cancel a queued or running local job. A running one's result is discarded."""
-        record = self.store.get(job_id)
-        if record is None or record.get("status") not in ACTIVE:
-            return False
-        self._cancelled.add(job_id)
-        future = self._futures.get(job_id)
-        if future is not None:
-            future.cancel()
-        self.store.update(job_id, status="CANCELLED", finished_at=now())
+        with self._transition:
+            record = self.store.get(job_id)
+            if record is None or record.get("status") not in ACTIVE:
+                return False
+            self._cancelled.add(job_id)
+            future = self._futures.get(job_id)
+            if future is not None:
+                future.cancel()
+            self.store.update(job_id, status="CANCELLED", finished_at=now())
         return True
 
     def wait(self, job_id: str, timeout: float) -> None:
