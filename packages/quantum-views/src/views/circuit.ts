@@ -2,7 +2,7 @@
 import { blockLegend, describeGate, drawCircuit, type CircuitData, type Gate } from "../circuit-draw";
 import { busy, button, el } from "../dom";
 import { callServer, onThemeChange, report, setAppTools, textResult, type Json } from "../host";
-import { pictureTools, setFacts, shell } from "./common";
+import { pictureTools, setFacts, shell, type Described } from "./common";
 
 interface CircuitViewData extends CircuitData {
   qasm3: string;
@@ -133,7 +133,7 @@ export async function circuitView(request: Json): Promise<void> {
   );
 }
 
-function describeItems(items: Json[], data: CircuitData): string {
+function describeItems(items: Json[], data: CircuitData): Described {
   const gates = items.filter((i) => i.kind === "gate");
   const qubits = items.filter((i) => i.kind === "qubit");
   const blocks = items.filter((i) => i.kind === "block");
@@ -147,5 +147,15 @@ function describeItems(items: Json[], data: CircuitData): string {
   }
   if (qubits.length) lines.push("Qubit wires: " + qubits.map((q) => String(q.name)).join(", "));
   if (blocks.length) lines.push("Inside blocks: " + blocks.map((b) => String(b.name)).join(", "));
-  return lines.join("\n") || "Nothing of the circuit lies under the mark.";
+  return {
+    text: lines.join("\n") || "Nothing of the circuit lies under the mark.",
+    under: {
+      gates: gates.map((g) => ({
+        gate: g.index, name: g.name, qubits: (g.qubits as number[]).map((q) => data.qubits[q] ?? q), layer: g.layer,
+        params: (g.params as unknown[]).length ? g.params : undefined,
+      })),
+      "qubit wires": qubits.map((q) => q.name),
+      blocks: blocks.map((b) => b.name),
+    },
+  };
 }

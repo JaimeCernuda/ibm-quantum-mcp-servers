@@ -174,15 +174,23 @@ export async function backendView(request: Json): Promise<void> {
       },
     },
     ...pictureTools(() => frame, (items) => {
-      const lines: string[] = [];
-      for (const i of items) {
-        if (i.kind === "physical_qubit") lines.push(`- ${describeQubit(Number(i.qubit))}`);
-        if (i.kind === "edge") {
-          const [a, b] = i.qubits as [number, number];
-          lines.push(`- ${describeEdge(a, b)}`);
-        }
-      }
-      return lines.length ? `Under the mark on ${data.name}:\n${lines.join("\n")}` : "Nothing of the device lies under the mark.";
+      const qubits = items.filter((i) => i.kind === "physical_qubit").map((i) => Number(i.qubit));
+      const edges = items.filter((i) => i.kind === "edge").map((i) => i.qubits as [number, number]);
+      const lines = [...qubits.map((q) => `- ${describeQubit(q)}`), ...edges.map(([a, b]) => `- ${describeEdge(a, b)}`)];
+      return {
+        text: lines.length ? `Under the mark on ${data.name}:\n${lines.join("\n")}` : "Nothing of the device lies under the mark.",
+        under: {
+          device: data.name,
+          qubits: qubits.map((q) => {
+            const m = qubit.get(q);
+            return { qubit: q, t1_us: m?.t1_us, t2_us: m?.t2_us, readout_error: m?.readout_error };
+          }),
+          couplings: edges.map(([a, b]) => {
+            const m = edge.get(edgeKey(a, b));
+            return { coupling: `${a}-${b}`, gate: m?.gate, two_qubit_error: m?.two_qubit_error };
+          }),
+        },
+      };
     }),
   ]);
   draw();

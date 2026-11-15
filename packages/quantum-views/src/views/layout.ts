@@ -3,7 +3,7 @@ import { describeGate, drawCircuit, type CircuitData, type Gate } from "../circu
 import { drawDevice, edgeKey, type Device } from "../device-draw";
 import { busy, button, el } from "../dom";
 import { callServer, onThemeChange, report, setAppTools, textResult, type Json } from "../host";
-import { pictureTools, setFacts, shell } from "./common";
+import { pictureTools, setFacts, shell, type Described } from "./common";
 
 interface LayoutData {
   backend: string;
@@ -289,7 +289,7 @@ export async function layoutView(request: Json): Promise<void> {
   render();
 }
 
-function describeItems(items: Json[], data: LayoutData, holder?: Map<number, number>): string {
+function describeItems(items: Json[], data: LayoutData, holder?: Map<number, number>): Described {
   const lines: string[] = [];
   const gates = items.filter((i) => i.kind === "gate");
   const qubits = items.filter((i) => i.kind === "physical_qubit").map((i) => Number(i.qubit));
@@ -302,5 +302,14 @@ function describeItems(items: Json[], data: LayoutData, holder?: Map<number, num
     const swaps = data.swaps.filter((s) => edgeKey(s.qubits[0], s.qubits[1]) === edgeKey(a, b));
     lines.push(`Coupling ${a}–${b}: ${swaps.length ? `${swaps.length} swaps at routed layers ${swaps.map((s) => s.layer).join(", ")}` : "no swaps"}`);
   }
-  return lines.join("\n") || "Nothing of the layout lies under the mark.";
+  const swapsOn = (a: number, b: number) =>
+    data.swaps.filter((s) => edgeKey(s.qubits[0], s.qubits[1]) === edgeKey(a, b)).map((s) => s.layer);
+  return {
+    text: lines.join("\n") || "Nothing of the layout lies under the mark.",
+    under: {
+      "logical gates": gates.map((g) => ({ gate: g.index, name: g.name, qubits: g.qubits, layer: g.layer })),
+      "physical qubits": qubits.map((q) => ({ qubit: q, holds: holder?.has(q) ? `q${holder.get(q)}` : "unused" })),
+      couplings: edges.map(([a, b]) => ({ coupling: `${a}-${b}`, swaps_at_layers: swapsOn(a, b) })),
+    },
+  };
 }

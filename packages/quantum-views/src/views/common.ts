@@ -38,9 +38,17 @@ export function setFacts(target: HTMLElement, facts: [string, string | number][]
 }
 
 /** capture and describe_region over the view's drawing. */
+export interface Described {
+  /** What the agent reads. */
+  text: string;
+  /** What lies under the mark, one list per kind (gates, qubits, couplings…); a host lists
+   *  each key on its own line. */
+  under: Json;
+}
+
 export function pictureTools(
   root: () => HTMLElement,
-  describe: (items: Json[]) => string,
+  describe: (items: Json[]) => Described,
 ): AppTool[] {
   return [
     {
@@ -72,14 +80,14 @@ export function pictureTools(
       run: async (args): Promise<ToolResultLike> => {
         const region = regionOf(args);
         const items = itemsIn(root(), region).map((node) => JSON.parse(node.getAttribute("data-item") ?? "{}") as Json);
-        const unique = dedupe(items);
+        const described = describe(dedupe(items));
         const shot = await picture(root(), region);
         return {
           content: [
             { type: "image", data: shot.data, mimeType: "image/png" },
-            { type: "text", text: describe(unique) },
+            { type: "text", text: described.text },
           ],
-          structuredContent: { region, items: unique },
+          structuredContent: described.under,
         };
       },
     },

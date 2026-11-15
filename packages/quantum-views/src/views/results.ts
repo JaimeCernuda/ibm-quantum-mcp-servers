@@ -186,7 +186,7 @@ export async function resultsView(request: Json): Promise<void> {
         return textResult(`Comparing ${ids.join(", ")}.`, { job_ids: ids });
       },
   };
-  setAppTools([showJobs, ...pictureTools(() => frame, () => "The results chart.").filter((t) => t.name === "capture")]);
+  setAppTools([showJobs, ...pictureTools(() => frame, () => ({ text: "The results chart.", under: {} })).filter((t) => t.name === "capture")]);
 
   await render();
 }
