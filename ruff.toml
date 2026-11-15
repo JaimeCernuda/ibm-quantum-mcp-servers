@@ -112,6 +112,9 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 ]
 
 # qiskit-gym-mcp-server specific ignores (intentional lazy loading)
+"**/ibm_quantum_mcp_server/*.py" = [
+    "PLC0415",  # Import inside function (lazy loading qiskit-aer and the runtime service)
+]
 "**/qiskit_gym_mcp_server/gym_core.py" = [
     "PLC0415",  # Import inside function (lazy loading qiskit-gym)
     "PLR0912",  # Too many branches (gateset parsing)

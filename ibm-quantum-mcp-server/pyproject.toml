@@ -1,0 +1,56 @@
+[project]
+name = "ibm-quantum-mcp-server"
+version = "0.1.0"
+description = "One MCP server for Qiskit circuits, IBM Quantum Runtime and the Qiskit docs, with local simulation and MCP Apps views"
+readme = "README.md"
+requires-python = ">=3.10,<3.15"
+dependencies = [
+    "fastmcp[apps]>=3.2.0,<4",
+    "qiskit>=2.0,<3",
+    "qiskit-aer>=0.17",
+    "qiskit-ibm-runtime>=0.40.0",
+    "qiskit-mcp-server",
+    "qiskit-ibm-runtime-mcp-server",
+    "qiskit-docs-mcp-server",
+    "platformdirs>=4",
+    "pydantic>=2.0.0",
+]
+
+[tool.uv.sources]
+qiskit-mcp-server = { workspace = true }
+qiskit-ibm-runtime-mcp-server = { workspace = true }
+qiskit-docs-mcp-server = { workspace = true }
+
+[[project.authors]]
+name = "Quantum+AI Team. IBM Quantum"
+email = "Quantum.Plus.AI@ibm.com"
+
+[project.license]
+text = "Apache-2.0"
+
+[project.scripts]
+ibm-quantum-mcp-server = "ibm_quantum_mcp_server.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ibm_quantum_mcp_server"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.13",
+    "mypy>=1.15.0",
+    "bandit[toml]>=1.9.2",
+]
+test = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.11.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
